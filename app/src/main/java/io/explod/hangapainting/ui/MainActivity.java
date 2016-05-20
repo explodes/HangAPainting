@@ -1,4 +1,4 @@
-package io.explod.hangapainting;
+package io.explod.hangapainting.ui;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -17,6 +17,12 @@ import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
+
+import io.explod.hangapainting.R;
+import io.explod.hangapainting.lines.LineDrawer;
+import io.explod.hangapainting.lines.HorizontalLineFinder;
+import io.explod.hangapainting.lines.LineList;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
@@ -24,11 +30,39 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
 	private static final int REQUEST_CAMERA_PERMISSION = 1;
 
+	private static final int MAX_LINES = 20;
+
+	private static final int PROCESS_WIDTH = 200;
+
+	private static final int PROCESS_HEIGHT = 200;
+
+	private static final double MAX_ANGLE = 15;
+
+	private static final int MIN_LINE_LENGTH = (int) (PROCESS_WIDTH * 0.10);
+
+	private static final Scalar LINE_COLOR = new Scalar(255, 64, 64);
+
+	private static final int LINE_THICKNESS = 3;
+
+	private static final int REFRESH_FRQ = 12;
+
 	@Nullable
 	private CameraBridgeViewBase mOpenCvCameraView;
 
 	@Nullable
-	private Lines mLines;
+	private HorizontalLineFinder mHorizontalLineFinder;
+
+	@Nullable
+	private LineList mLastLines;
+
+	@NonNull
+	private LineDrawer mLineDrawer = new LineDrawer(LINE_COLOR, LINE_THICKNESS);
+
+	private double mScaleX;
+
+	private double mScaleY;
+
+	private long mFrameNumber = 0;
 
 	@NonNull
 	private final BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -39,8 +73,6 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 					Log.i(TAG, "OpenCV loaded successfully");
 					if (mOpenCvCameraView != null) {
 						mOpenCvCameraView.enableView();
-						mOpenCvCameraView.enableFpsMeter();
-						mOpenCvCameraView.setMaxFrameSize(240, 240);
 					}
 				}
 				break;
@@ -126,7 +158,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 	@Override
 	public void onCameraViewStarted(int width, int height) {
 		// ok!
-		mLines = new Lines(width, height);
+		mScaleX = width / (double) PROCESS_WIDTH;
+		mScaleY = height / (double) PROCESS_HEIGHT;
+		mHorizontalLineFinder = new HorizontalLineFinder(MAX_LINES, PROCESS_WIDTH, PROCESS_HEIGHT);
 	}
 
 	@Override
@@ -134,12 +168,10 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		// cool!
 	}
 
-	private int ct = 0;
-
 	@Override
 	public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
 
-		if (mLines == null) {
+		if (mHorizontalLineFinder == null) {
 			throw new NullPointerException("lines not available");
 		}
 
@@ -147,18 +179,14 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		Mat output = inputFrame.rgba();
 
 
-		Mat thresh = mLines.addLines(input, output);
-
-		ct++;
-
-		if (ct > 10) {
-			if (ct > 20) {
-				ct = 0;
-			}
-			return thresh;
-		} else {
-			return output;
+		mFrameNumber++;
+		if (mFrameNumber % REFRESH_FRQ == 0 || mLastLines == null) {
+			mLastLines = mHorizontalLineFinder.findLines(input, MIN_LINE_LENGTH, MAX_ANGLE);
 		}
+
+		mLineDrawer.drawLines(output, mLastLines, mScaleX, mScaleY);
+
+		return output;
 	}
 
 
