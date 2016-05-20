@@ -38,6 +38,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
 	private static final double MAX_ANGLE = 15;
 
+	private static final int MAX_GAP = (int) (PROCESS_WIDTH * 0.10);
+
 	private static final int MIN_LINE_LENGTH = (int) (PROCESS_WIDTH * 0.10);
 
 	private static final Scalar LINE_COLOR = new Scalar(255, 64, 64);
@@ -181,7 +183,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
 		mFrameNumber++;
 		if (mFrameNumber % REFRESH_FRQ == 0 || mLastLines == null) {
-			mLastLines = mHorizontalLineFinder.findLines(input, MIN_LINE_LENGTH, MAX_ANGLE);
+			mLastLines = mHorizontalLineFinder.findLines(input, MIN_LINE_LENGTH, MAX_GAP, MAX_ANGLE);
 		}
 
 		mLineDrawer.drawLines(output, mLastLines, mScaleX, mScaleY);

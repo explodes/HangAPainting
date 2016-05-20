@@ -18,7 +18,6 @@ public class HorizontalLineFinder {
 	private static final double HOUGH_RHO = 100;
 	private static final double HOUGH_THETA = Math.PI;
 	private static final int HOUGH_THRESHOLD = 0;
-	private static final double HOUGH_LINE_GAP = 10;
 
 	@NonNull
 	private final Mat mLines = new Mat();
@@ -38,7 +37,7 @@ public class HorizontalLineFinder {
 	}
 
 	@NonNull
-	public LineList findLines(@NonNull Mat input, int minLength, double toleranceDegrees) {
+	public LineList findLines(@NonNull Mat input, int minLength, int maxGap, double toleranceDegrees) {
 
 		// find all of the lines, put them in mLines
 		//// scale down for performance
@@ -46,7 +45,7 @@ public class HorizontalLineFinder {
 		//// edge detection
 		Imgproc.Canny(scaledImage, mThresholdImage, CANNY_THRESHOLD_1, CANNY_THRESHOLD_2);
 		//// straight-line detection
-		Imgproc.HoughLinesP(mThresholdImage, mLines, HOUGH_RHO, HOUGH_THETA, HOUGH_THRESHOLD, minLength, HOUGH_LINE_GAP);
+		Imgproc.HoughLinesP(mThresholdImage, mLines, HOUGH_RHO, HOUGH_THETA, HOUGH_THRESHOLD, minLength, maxGap);
 
 		// add all the lines to our list, filling only up to our capacity
 		mLineList.clear();
