@@ -16,11 +16,7 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
-import org.opencv.imgproc.Imgproc;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
@@ -31,6 +27,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 	@Nullable
 	private CameraBridgeViewBase mOpenCvCameraView;
 
+	@Nullable
+	private Lines mLines;
+
 	@NonNull
 	private final BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
 		@Override
@@ -40,6 +39,8 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 					Log.i(TAG, "OpenCV loaded successfully");
 					if (mOpenCvCameraView != null) {
 						mOpenCvCameraView.enableView();
+						mOpenCvCameraView.enableFpsMeter();
+						mOpenCvCameraView.setMaxFrameSize(240, 240);
 					}
 				}
 				break;
@@ -108,7 +109,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		super.onResume();
 		if (!OpenCVLoader.initDebug()) {
 			Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-			OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
+			OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_1_0, this, mLoaderCallback);
 		} else {
 			Log.d(TAG, "OpenCV library found inside package. Using it!");
 			mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
@@ -125,6 +126,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 	@Override
 	public void onCameraViewStarted(int width, int height) {
 		// ok!
+		mLines = new Lines(width, height);
 	}
 
 	@Override
@@ -132,36 +134,31 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 		// cool!
 	}
 
+	private int ct = 0;
+
 	@Override
 	public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
+
+		if (mLines == null) {
+			throw new NullPointerException("lines not available");
+		}
 
 		Mat input = inputFrame.gray();
 		Mat output = inputFrame.rgba();
 
-		Mat thresholdImage = new Mat(input.size(), CvType.CV_8UC1);
-		Imgproc.Canny(input, thresholdImage, 80, 100);
 
-		Mat lines = new Mat();
+		Mat thresh = mLines.addLines(input, output);
 
-		int threshold = 50;
-		int minLineSize = 20;
-		int lineGap = 20;
+		ct++;
 
-		Imgproc.HoughLinesP(thresholdImage, lines, 1, Math.PI / 180, threshold, minLineSize, lineGap);
-
-		for (int x = 0; x < lines.cols(); x++) {
-			double[] vec = lines.get(0, x);
-			double x1 = vec[0],
-				y1 = vec[1],
-				x2 = vec[2],
-				y2 = vec[3];
-			Point start = new Point(x1, y1);
-			Point end = new Point(x2, y2);
-
-			Imgproc.line(output, start, end, new Scalar(255, 0, 0), 3);
+		if (ct > 10) {
+			if (ct > 20) {
+				ct = 0;
+			}
+			return thresh;
+		} else {
+			return output;
 		}
-
-		return output;
 	}
 
 
