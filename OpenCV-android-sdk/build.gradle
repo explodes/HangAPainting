@@ -1,0 +1,27 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
+
+    defaultConfig {
+        minSdkVersion 7
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+
+        consumerProguardFiles 'proguard-rules.pro'
+    }
+    sourceSets.main {
+        manifest.srcFile 'sdk/java/AndroidManifest.xml'
+        java.srcDirs = ['sdk/java/src']
+        resources.srcDirs = ['sdk/java/src']
+        aidl.srcDirs = ['sdk/java/src']
+        renderscript.srcDirs = ['sdk/java/src']
+        res.srcDirs = ['sdk/java/res']
+        jniLibs.srcDirs = ['sdk/native/libs', 'sdk/native/3rdparty/libs']
+    }
+}
+
+dependencies {
+}
